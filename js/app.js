@@ -5,8 +5,9 @@ import { pageHome } from "./pages/home.js";
 import { pageRequest } from "./pages/request.js";
 import { pageTrack } from "./pages/track.js";
 import { pageAdmin } from "./pages/admin.js";
+import { pageRegister } from "./pages/register.js";
 
-const routes = { request: pageRequest, track: pageTrack, admin: pageAdmin };
+const routes = { request: pageRequest, track: pageTrack, admin: pageAdmin, register: pageRegister };
 
 function renderNav() {
   $("#nav").innerHTML = `
