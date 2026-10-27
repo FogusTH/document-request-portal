@@ -11,7 +11,8 @@ export async function pageAdmin() {
     const { data } = await sb.from("staff").select("user_id").eq("user_id", user.id).maybeSingle();
     isStaff = !!data;
   }
-  if (!isStaff) return adminLogin(user ? t("adm.noStaff") : "");
+  if (!user) return adminLogin("");
+  if (!isStaff) return adminActivate(user);
   await adminLoad(); adminRender();
 }
 
@@ -19,11 +20,30 @@ function adminLogin(msg) {
   app.innerHTML = `<form class="wrap" id="lf"><h1>${t("adm.signinTitle")}</h1><div class="card">
     <label>${t("adm.email")}</label><input id="em" type="email" required>
     <label>${t("adm.password")}</label><input id="pw" type="password" required>
-    <p><button>${t("adm.signin")}</button></p><p class="err" id="err">${esc(msg)}</p></div></form>`;
+    <p><button>${t("adm.signin")}</button></p><p class="err" id="err">${esc(msg)}</p>
+    <p class="muted"><a href="#/register">${t("adm.registerLink")}</a></p></div></form>`;
   $("#lf").onsubmit = async (e) => {
     e.preventDefault();
     const { error } = await sb.auth.signInWithPassword({ email: $("#em").value, password: $("#pw").value });
     if (error) { $("#err").textContent = t("adm.signinFail", { msg: errText(error.message) }); return; }
+    pageAdmin();
+  };
+}
+
+// Signed in but not yet staff: enter the registration code to activate the account.
+function adminActivate(user) {
+  app.innerHTML = `<form class="wrap" id="af"><h1>${t("adm.activateTitle")}</h1><div class="card">
+    <p class="muted">${esc(t("adm.activateHint", { email: user.email }))}</p>
+    <label>${t("reg.name")}</label><input id="dn" required value="${esc(user.user_metadata?.display_name || "")}">
+    <label>${t("reg.code")}</label><input id="rc" type="password" autocomplete="off" required>
+    <p class="actions"><button>${t("adm.activate")}</button><button type="button" class="ghost" id="so">${t("adm.signout")}</button></p>
+    <p class="err" id="err"></p></div></form>`;
+  $("#so").onclick = async () => { await sb.auth.signOut(); pageAdmin(); };
+  $("#af").onsubmit = async (e) => {
+    e.preventDefault();
+    const { data, error } = await sb.rpc("register_staff", { p_code: $("#rc").value, p_name: $("#dn").value });
+    if (error) { $("#err").textContent = errText(error.message); return; }
+    if (data !== "ok" && data !== "already") { $("#err").textContent = t("reg.err." + data); return; }
     pageAdmin();
   };
 }
